@@ -130,10 +130,11 @@ def folder_count(folder_path, hidden_files=False, hidden_folders=False, print_re
         max_comment = len("Comment")
         max_whitespace = len("Whitespace")
         for folder_loc, folder in folders.items():
-            max_folder_loc = max(max_folder_loc, len(folder_loc))
-            max_code = max(max_code, tools.num_digits(folder.code_lines))
-            max_comment = max(max_comment, tools.num_digits(folder.comment_lines))
-            max_whitespace = max(max_whitespace, tools.num_digits(folder.whitespace_lines))
+            if include_zero or folder.code_lines != 0:
+                max_folder_loc = max(max_folder_loc, len(folder_loc))
+                max_code = max(max_code, tools.num_digits(folder.code_lines))
+                max_comment = max(max_comment, tools.num_digits(folder.comment_lines))
+                max_whitespace = max(max_whitespace, tools.num_digits(folder.whitespace_lines))
         print_str = ("{:<%s} | {:%s} | {:%s} | {:%s}" % (max_folder_loc, max_code, max_comment, max_whitespace)
                      ).format("Folder location", "Code", "Comment", "Whitespace")
         print(print_str)
