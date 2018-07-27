@@ -1,3 +1,4 @@
+import json
 import os
 import Tools as tools
 
@@ -41,38 +42,47 @@ class Folder:
 def file_count(file_path):
     """Counts the lines of Python code, comments and whitespace in a file located at :file_path:."""
 
-    lines = tools.Object(code=0, comment=0, whitespace=0)
+    line_count = tools.Object(code=0, comment=0, whitespace=0)
     currently_in_docstring = False
 
     with open(file_path, 'r') as f:
-        for line in f.readlines():
+        if file_path.endswith('.py'):
+            lines = f.readlines()
+        elif file_path.endswith('ipynb'):
+            lines = []
+            cells = json.load(f)['cells']
+            for cell in cells:
+                if cell['cell_type'] == 'code':
+                    lines.extend(cell['source'])
+        else:
+            raise RuntimeError("Unrecognised file type at '{}'".format(file_path))
+
+        for line in lines:
             line = line.strip()
             if currently_in_docstring:
-                lines.comment += 1
+                line_count.comment += 1
                 if line.endswith('"""'):
                     currently_in_docstring = False
             elif line == '':
-                lines.whitespace += 1
+                line_count.whitespace += 1
             elif line.startswith('#'):
-                lines.comment += 1
+                line_count.comment += 1
             elif line.startswith('"""'):
-                lines.comment += 1
+                line_count.comment += 1
                 if line == '"""' or not line.endswith('"""'):
                     currently_in_docstring = True
             else:
-                lines.code += 1
+                line_count.code += 1
 
-    return lines
+    return line_count
 
 
-def folder_count(folder_path, file_type='py', hidden_files=False, hidden_folders=False, print_result=True,
-                 include_zero=False, add_subfolders=True):
+def folder_count(folder_path, hidden_files=False, hidden_folders=False, print_result=True, include_zero=False,
+                 add_subfolders=True):
     """
     Counts the number of lines of code in a folder.
 
     :str folder_path: The path to the folder.
-    :str file_type: Optional, a file extension, specifying the kind of file to count the lines of code from. Defaults
-        to 'py'.
     :bool hidden_files: Optional, whether to count hidden files. Defaults to False.
     :bool hidden_folders: Optional, whether to count hidden folders. Defaults to False.
     :bool print_result: Optional, whether to print out the results in a pretty format at the end. Defaults to True.
@@ -100,7 +110,7 @@ def folder_count(folder_path, file_type='py', hidden_files=False, hidden_folders
             if not hidden_files and filename.startswith('.'):
                 # Hidden file
                 continue
-            if filename.endswith(file_type):
+            if filename.endswith('.py') or filename.endswith('.ipynb'):
                 file_path = os.path.join(dirpath, filename)
                 file_lines = file_count(file_path)
                 file = File(filename, file_lines)
