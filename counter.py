@@ -1,6 +1,5 @@
 import os
-import pprint
-import Tools
+import Tools as tools
 
 
 class File:
@@ -28,6 +27,9 @@ class Folder:
             self.whitespace_lines += file.whitespace_lines
 
     def add_lines_from_subfolders(self, all_folders):
+        """Goes through all of this folder's immediate subfolders and adds on their current counts for their lines of
+        code/comment/whitespace."""
+
         for subfolder_name in self.subfolder_names:
             subfolder_path = os.path.join(self.dirpath, subfolder_name)
             subfolder = all_folders[subfolder_path]
@@ -35,16 +37,11 @@ class Folder:
             self.comment_lines += subfolder.comment_lines
             self.whitespace_lines += subfolder.whitespace_lines
 
-    # TODO: Improve this! (See TODO below)
-    def __repr__(self):
-        return ' | '.join(map(str, (self.code_lines, self.comment_lines, self.whitespace_lines)))
 
+def file_count(file_path):
+    """Counts the lines of Python code, comments and whitespace in a file located at :file_path:."""
 
-def file_count(file_path, file_type='py'):
-    if file_type != 'py':
-        raise NotImplementedError('Only supports .py files at the moment!')
-
-    lines = Tools.Object(code=0, comment=0, whitespace=0)
+    lines = tools.Object(code=0, comment=0, whitespace=0)
     currently_in_docstring = False
 
     with open(file_path, 'r') as f:
@@ -68,7 +65,8 @@ def file_count(file_path, file_type='py'):
     return lines
 
 
-def folder_count(folder_path, file_type='py', hidden_files=False, hidden_folders=False, pretty_print=True, return_val=False):
+def folder_count(folder_path, file_type='py', hidden_files=False, hidden_folders=False, print_result=True,
+                 include_zero=False, add_subfolders=True):
     """
     Counts the number of lines of code in a folder.
 
@@ -77,8 +75,10 @@ def folder_count(folder_path, file_type='py', hidden_files=False, hidden_folders
         to 'py'.
     :bool hidden_files: Optional, whether to count hidden files. Defaults to False.
     :bool hidden_folders: Optional, whether to count hidden folders. Defaults to False.
-    :bool pretty_print: Optional, whether to print out the results in a pretty format at the end. Defaults to True.
-    :bool return_val: Optional, whether to return a dictionary of the results. Defaults to False.
+    :bool print_result: Optional, whether to print out the results in a pretty format at the end. Defaults to True.
+    :bool include_zero: Optional, whether to include lines containing zero lines of code.
+    :bool add_subfolders: Optional, whether to include the amount of code in subfolders when stating the amount of lines
+        of code/comment/whitespace in a folder.
     :return: If return_val is truthy, then it is a dictionary, with the keys being the paths to folders, and the values
         being 'Folder' objects as above.
     """
@@ -102,21 +102,40 @@ def folder_count(folder_path, file_type='py', hidden_files=False, hidden_folders
                 continue
             if filename.endswith(file_type):
                 file_path = os.path.join(dirpath, filename)
-                file_lines = file_count(file_path, file_type)
+                file_lines = file_count(file_path)
                 file = File(filename, file_lines)
                 files.append(file)
 
         folders[dirpath] = Folder(dirpath, files, subdirnames)
 
-    for folder_name, folder in sorted(folders.items(), key=lambda x: len(x[0]))[::-1]:
-        folder.add_lines_from_subfolders(folders)
+    if add_subfolders:
+        # Go through in order of length of path, as a string, from longest to shortest. This guarantees that we evaluate
+        # all deeper folders before we evaluate shallower ones.
+        for folder_name, folder in sorted(folders.items(), key=lambda x: len(x[0]))[::-1]:
+            folder.add_lines_from_subfolders(folders)
 
-    # TODO: Improve this! (See TODO above)
-    if pretty_print:
-        pprint.pprint(folders)
+    if print_result:
+        max_folder_loc = len("Folder location")
+        max_code = len("Code")
+        max_comment = len("Comment")
+        max_whitespace = len("Whitespace")
+        for folder_loc, folder in folders.items():
+            max_folder_loc = max(max_folder_loc, len(folder_loc))
+            max_code = max(max_code, tools.num_digits(folder.code_lines))
+            max_comment = max(max_comment, tools.num_digits(folder.comment_lines))
+            max_whitespace = max(max_whitespace, tools.num_digits(folder.whitespace_lines))
+        print_str = ("{:<%s} | {:%s} | {:%s} | {:%s}" % (max_folder_loc, max_code, max_comment, max_whitespace)
+                     ).format("Folder location", "Code", "Comment", "Whitespace")
+        print(print_str)
+        print("-" * (max_folder_loc + 1) + "+" + "-" * (max_code + 2) + "+" + "-" * (max_comment + 2) + "+" +
+              "-" * (max_whitespace + 1))
+        for folder_loc, folder in folders.items():
+            if include_zero or folder.code_lines != 0:
+                print_str = ("{:<%s} | {:%s} | {:%s} | {:%s}" % (max_folder_loc, max_code, max_comment, max_whitespace)
+                             ).format(folder_loc, folder.code_lines, folder.comment_lines, folder.whitespace_lines)
+                print(print_str)
 
-    if return_val:
-        return folders
+    return folders
 
 
 def count(*args, **kwargs):
@@ -124,6 +143,5 @@ def count(*args, **kwargs):
     return folder_count('.', *args, **kwargs)
 
 
-# Test by running it against itself
 if __name__ == '__main__':
     count()
