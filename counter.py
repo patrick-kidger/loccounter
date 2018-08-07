@@ -1,6 +1,6 @@
 import json
 import os
-import Tools as tools
+import tools
 
 
 class File:
