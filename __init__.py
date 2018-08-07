@@ -1,1 +1,1 @@
-from loccounter.counter import count, folder_count, file_count
+from loccounter.counter import count, file_count
