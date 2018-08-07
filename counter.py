@@ -77,12 +77,12 @@ def file_count(file_path):
     return line_count
 
 
-def folder_count(folder_path, hidden_files=False, hidden_folders=False, print_result=True, include_zero=False,
-                 add_subfolders=True):
+def count(folder_path='.', hidden_files=False, hidden_folders=False, print_result=True, include_zero=False,
+          add_subfolders=True):
     """
     Counts the number of lines of code in a folder.
 
-    :str folder_path: The path to the folder.
+    :str folder_path: The path to the folder. Defaults to the current folder.
     :bool hidden_files: Optional, whether to count hidden files. Defaults to False.
     :bool hidden_folders: Optional, whether to count hidden folders. Defaults to False.
     :bool print_result: Optional, whether to print out the results in a pretty format at the end. Defaults to True.
@@ -154,11 +154,6 @@ def folder_count(folder_path, hidden_files=False, hidden_folders=False, print_re
 
     return folders
 
-
-def count(*args, **kwargs):
-    """Run folder_count in the current folder"""
-    return folder_count('.', *args, **kwargs)
-
-
+    
 if __name__ == '__main__':
     count()
